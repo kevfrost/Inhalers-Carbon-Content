@@ -9,6 +9,7 @@ require("tidyverse")
 require("httr")
 require("jsonlite")
 require("rlist")
+require("reshape")
 library(readxl)
 library(janitor)
 library(foreach)
@@ -20,6 +21,15 @@ library(jsonlite)
 library(rlist)
 library(tidyverse)
 library(foreach)
+library(reshape)
+
+
+
+```
+
+
+```{R}
+
 
 # mainDir <- getwd()
 # subDir <- "InhalersOuput"
@@ -79,6 +89,10 @@ while (i < j)
 
 ```
 
+```{r}
+
+```
+
 
 
 
@@ -100,19 +114,35 @@ MonthsAgo12$year <- MonthsAgo12$year - 1
 MonthsAgo12 <- as.Date(MonthsAgo12)
 Last12months <- subset(DataFrame, date > MonthsAgo12 )
 
+total_per_GP_Practice <- tapply(Last12months$TotalCarbon,Last12months$row_name,sum)
+total_per_inhaler_type <- tapply(Last12months$TotalCarbon,Last12months$drug,sum)
 
+Pivot <- Last12months %>%
+  group_by(row_name, drug) %>%
+  summarize(total_carbon_for_device_and_Surgery = sum(TotalCarbon))
 
+pivot_table <- cast(Pivot, row_name ~ drug)
+write.csv(pivot_table,"Pivot.csv")
 CCG_df<-Last12months%>% 
         group_by(row_name)%>%
         summarise(Total_Quan = sum(TotalCarbon) )
 CCG_df <- subset(CCG_df,Total_Quan>5000)
 ggplot(data = CCG_df,mapping=aes(x=Total_Quan , y=row_name)) +geom_col()
 
+
+
 ```
 
 
 ```{r}
+Epracur <- read_csv("Epracur.csv", col_names = FALSE, na = "empty")
 
+postcode <- merge(Last12months, Epracur, by.x ="row_id", by.y ="X1")
+postcode <- merge(postcode, Inhalers, by.x = "drugCode", by.y = "id")
+Pivot <- postcode %>%
+  group_by(row_name, Category) %>%
+  summarize(total_device_and_Surgery = sum(quantity))
 
-
-
+pivot_table <- cast(Pivot, row_name ~ Category)
+write.csv(pivot_table,"Pivot1.csv")
+```
